@@ -1,4 +1,6 @@
 # Y86 Pipeline Lab
+A Y86 pipeline visualizer based on CS:APP Chapter 4, built with AI to help me understand pipelining.
+You can check out the Y86 simulator here: [Y86 Pipeline Lab](https://imaarov.github.io/y86-pipeline-lab/)
 
 ## What it simulate
 
