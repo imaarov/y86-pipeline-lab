@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Y86 Pipeline Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="2" width="20" height="20" rx="4" stroke="var(--accent)" stroke-width="1.6"/>
+        <path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z" fill="var(--accent)" opacity="0.85"/>
+      </svg>
+      <div>
+        <div class="brand-name">Y86 Pipeline Lab</div>
+        <div class="brand-sub">a working 5-stage PIPE simulator</div>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <button class="btn btn-primary" id="btn-assemble">Assemble</button>
+    </div>
+    <div class="ctrl-group">
+      <button class="btn" id="btn-step" title="Advance exactly one clock cycle">Step ▸</button>
+      <button class="btn" id="btn-run" title="Run continuously">Run ▶</button>
+      <button class="btn" id="btn-reset" title="Reset to cycle 0">Reset ↺</button>
+    </div>
+    <div class="ctrl-group">
+      <span class="field-label">Speed</span>
+      <input type="range" id="speed" min="1" max="10" value="5" style="accent-color:var(--accent)">
+    </div>
+    <div class="ctrl-group">
+      <label class="toggle active" id="tg-fwd"><input type="checkbox" id="chk-fwd" checked> Forwarding</label>
+      <label class="toggle active" id="tg-stall"><input type="checkbox" id="chk-stall" checked> Stalls</label>
+      <label class="toggle" id="tg-pt"><input type="checkbox" id="chk-pt"> Predict taken</label>
+    </div>
+    <div class="ctrl-group">
+      <button class="btn btn-icon" id="btn-export-program" title="Download the current program as a file">⇩ Program</button>
+      <button class="btn btn-icon" id="btn-export-trace" title="Download the full cycle trace as JSON">⇩ Trace</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-icon" id="btn-theme" title="Toggle light / dark">◐</button>
+  </div>
+
+  <div class="main">
+
+    <div class="col col-left">
+      <div class="section scroll" style="flex:1;">
+        <div class="panel-title">Y86 SOURCE <span id="prog-name" style="color:var(--text-faint);font-weight:400;"></span></div>
+        <div class="section-body">
+          <textarea id="source" spellcheck="false"></textarea>
+          <div id="asm-status"></div>
+        </div>
+      </div>
+      <div class="section scroll" style="flex:1;">
+        <div class="panel-title">SCENARIOS</div>
+        <div class="section-body">
+          <div class="example-list" id="example-list"></div>
+        </div>
+      </div>
+      <div class="section scroll" style="flex:none;">
+        <div class="panel-title">SCENARIO GENERATOR</div>
+        <div class="section-body" id="generator-body"></div>
+      </div>
+    </div>
+
+    <div class="col col-center">
+      <div class="status-strip" id="status-strip"></div>
+      <div class="viewing-banner" id="viewing-banner"></div>
+
+      <div class="pipeline-wrap">
+        <div class="pipeline" id="pipeline"></div>
+      </div>
+
+      <div class="explain" id="explain"></div>
+
+      <div class="timeline-wrap">
+        <div class="panel-title" style="padding-bottom:0;">
+          CYCLE TIMELINE <span id="tl-hint" style="font-weight:400;color:var(--text-faint);">click a cell for details</span>
+          <span class="cycle-nav">
+            <button class="btn btn-icon" id="btn-cyc-prev" title="Go back one cycle">◀</button>
+            <input type="number" id="cyc-jump" min="0" value="0" title="Jump to cycle">
+            <button class="btn btn-icon" id="btn-cyc-go" title="Jump to this cycle">Go</button>
+            <button class="btn btn-icon" id="btn-cyc-next" title="Go forward one cycle">▶</button>
+            <button class="btn btn-icon" id="btn-cyc-live" title="Jump to the latest cycle">Live ⏭</button>
+          </span>
+        </div>
+        <div class="timeline-scroll">
+          <table class="timeline" id="timeline"></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col col-right">
+      <div class="tabs">
+        <div class="tab active" data-tab="regs">Regs</div>
+        <div class="tab" data-tab="mem">Mem</div>
+        <div class="tab" data-tab="sig">Signals</div>
+        <div class="tab" data-tab="guide">Learn</div>
+        <div class="tab" data-tab="perf">Perf</div>
+      </div>
+      <div class="tab-panel active" id="panel-regs"></div>
+      <div class="tab-panel" id="panel-mem"></div>
+      <div class="tab-panel" id="panel-sig">
+        <div id="signals-content"></div>
+        <div class="compare-box">
+          <div class="panel-title" style="padding:0 0 6px;">COMPARE TWO CYCLES</div>
+          <div class="gen-row">
+            <input type="number" id="cmp-a" min="1" value="1" style="width:60px;"> vs
+            <input type="number" id="cmp-b" min="1" value="2" style="width:60px;">
+            <button class="btn" id="cmp-go" style="padding:5px 10px;font-size:11.5px;">Compare</button>
+          </div>
+          <div id="cmp-result"></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="panel-guide"></div>
+      <div class="tab-panel" id="panel-perf"></div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">Predict-not-taken, in-order 5-stage PIPE with EX/MEM/WB→EX forwarding · click any pipeline card or timeline cell for the “why” behind it</div>
+</div>
+
+<script src="sim-core.js"></script>
+<script src="sim-pipeline.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
